@@ -45,7 +45,7 @@ inducively define the provability predicate to
 depend on the existance of a proof of φ from Γ.
 -/
 inductive PL.hprov (Γ : Multiset PL) : PL -> Prop :=
-| proof {φ : PL} : Nonempty (Γ T⊢ʰₚₗ φ) -> PL.hprov Γ φ
+| intro {φ : PL} : Nonempty (Γ T⊢ʰₚₗ φ) -> PL.hprov Γ φ
 
 notation:43 Γ "⊢ʰₚₗ" φ => PL.hprov Γ φ
 notation:43 Γ "⊬ʰₚₗ" φ => ¬PL.hprov Γ φ
@@ -58,7 +58,7 @@ Given a proof of φ from Γ, we derive that φ is provable from Γ.
 @[simp]
 theorem PL.hprov_of_hproof: (Γ T⊢ʰₚₗ φ) -> (Γ ⊢ʰₚₗ φ) := by
   intro H
-  apply PL.hprov.proof
+  apply PL.hprov.intro
   rw [<-exists_true_iff_nonempty]
   exact PL.HLProof.exists H
 
@@ -145,7 +145,7 @@ def PL.hp_if_intro: (Γ T⊢ʰₚₗ φ) -> (Γ ⊢ʰₚₗ ψ →ₒ φ) :=
 /--
 The Deduction Theorem for Hilbert style proof systems.
 -/
-theorem PL.deduction_thorem : ((φ ::ₘ Γ) ⊢ʰₚₗ ψ) → (Γ ⊢ʰₚₗ φ →ₒ ψ) := by
+theorem PL.deduction_theorem : ((φ ::ₘ Γ) ⊢ʰₚₗ ψ) → (Γ ⊢ʰₚₗ φ →ₒ ψ) := by
   intro H
   have H : (φ ::ₘ Γ) T⊢ʰₚₗ ψ := PL.hproof_of_hprov H
   induction H
@@ -164,6 +164,10 @@ theorem PL.deduction_thorem : ((φ ::ₘ Γ) ⊢ʰₚₗ ψ) → (Γ ⊢ʰₚₗ
     have IH4 := hproof_of_hprov (IH2 (hprov_of_hproof D))
     apply hprov_of_hproof
     exact PL.HProof.mp IH3 (PL.HProof.mp IH4 (@PL.HProof.ax2 Γ φ A B))
+
+
+theorem PL.hprov_lem : (Γ ⊢ʰₚₗ φ ∨ₒ ¬ₒφ) := by
+  sorry
 
 theorem PL.not_hprov : (Γ ⊬ʰₚₗφ) -> (Γ ⊢ʰₚₗ ¬ₒφ) := by
   sorry
