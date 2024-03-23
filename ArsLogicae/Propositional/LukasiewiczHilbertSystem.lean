@@ -1,85 +1,37 @@
 
-import Mathlib.Tactic.Contrapose
 import Mathlib.Data.Multiset.Basic
+import Mathlib.Tactic.Basic
+import Mathlib.Tactic.Cases
 
-def Atom := String
-deriving Repr, BEq, DecidableEq, Inhabited
+import ArsLogicae.Propositional.Language
+import ArsLogicae.Propositional.Semantics
 
-inductive PL where
-| atom (a : Atom): PL
-| not (φ : PL) : PL
-| and (φ ψ : PL): PL
-deriving Repr, BEq, DecidableEq, Inhabited
+/-!
+This file contains the most basic propositional proof system,
+Lukasiewicz's style of Hilbert Calcus with 3 axioms and modus ponens.
+-/
 
-prefix:70 "¬ₒ" => PL.not
-infixr:65 "∧ₒ"  => PL.and
-
-def PL.or (φ ψ : PL) : PL := ¬ₒ(¬ₒφ ∧ₒ ¬ₒψ)
-infixr:60 "∨ₒ" => PL.or
-
-def PL.implies (φ ψ : PL) : PL := ¬ₒφ ∨ₒ ψ
-infixl:55 "⊃₀" => PL.implies
-infixl:55 "→ₒ" => PL.implies
-
-def PL.iff (φ ψ : PL) : PL := (φ →ₒ ψ) ∧ₒ (ψ →ₒ φ)
-infix:50 "≡ₒ" => PL.iff
-infix:50 "↔ₒ" => PL.iff
-
-def PL.true : PL := PL.atom "A" →ₒ PL.atom "A"
-notation "⊤ₒ" => PL.true
-
-def PL.false : PL := ¬ₒ⊤ₒ
-notation "⊥ₒ" => PL.false
-
-def PL.sat (v : Atom -> Prop) : PL-> Prop
-| PL.atom a => v a
-| PL.not φ => ¬PL.sat v φ
-| PL.and φ ψ => PL.sat v φ ∧ PL.sat v ψ
-
-notation:43 assignment "⊨ₚₗ" p => PL.sat assignment p
-notation:43 assignment "⊭ₚₗ" p => ¬PL.sat assignment p
-
-theorem PL.sat_or : (v ⊨ₚₗ φ ∨ₒ ψ) ↔ (v ⊨ₚₗ φ) ∨ (v ⊨ₚₗ ψ) := by
-  simp [PL.sat]
-  tauto
-
-theorem PL.sat_implies : (v ⊨ₚₗ φ →ₒ ψ) ↔ ((v ⊨ₚₗ φ) → (v ⊨ₚₗ ψ)) := by
-  simp [PL.sat]
-
-theorem PL.sat_iff : (v ⊨ₚₗ φ ↔ₒ ψ) ↔ ((v ⊨ₚₗ φ) ↔ (v ⊨ₚₗ ψ)) := by
-  simp [PL.sat]
-  tauto
-
-theorem PL.sat_true : v ⊨ₚₗ ⊤ₒ := by
-  simp [PL.true, PL.sat];
-
-theorem PL.not_sat_false : v ⊭ₚₗ ⊥ₒ := by
-  simp [PL.false, PL.sat];
-
-def PL.valid (φ : PL) : Prop := ∀v, v ⊨ₚₗ φ
-notation:40 "⊨ₚₗ" φ => PL.valid φ
-
-/-
+/--
 `PL.HLProof Γ φ` or `Γ T⊢ʰₚₗ φ` is the `Type` of proofs of φ from Γ in
-a Łukasiewicz style Hilbert system.
+a Łukasiewicz style Hilbert system. Proofs are defined inducively with the
+following 5 constructors.
 -/
 inductive PL.HProof (Γ : Multiset PL) : PL -> Type
+/-- If φ is in Γ, then φ is provable from Γ. --/
 | assumption {φ : PL} : φ ∈ Γ -> PL.HProof Γ φ
+/-- If φ takes the form of any axiom 1, it is provable from Γ --/
 | ax1 {φ ψ : PL} : PL.HProof Γ (φ →ₒ (ψ →ₒ φ))
 | ax2 {φ ψ χ : PL} : PL.HProof Γ ((φ →ₒ (ψ →ₒ χ)) →ₒ ((φ →ₒ ψ) →ₒ (φ →ₒ χ)))
 | ax3 {φ ψ : PL} : PL.HProof Γ ((¬ₒφ →ₒ ¬ₒψ) →ₒ (ψ →ₒ φ))
+/--
+If φ is provable from Γ and φ →ₒ ψ is provable from Γ,
+then ψ is provable from Γ
+-/
 | mp {φ ψ : PL} : PL.HProof Γ φ -> PL.HProof Γ (φ →ₒ ψ) -> PL.HProof Γ ψ
 
 notation:43 Γ "T⊢ʰₚₗ" φ => PL.HProof Γ φ
 notation:43 "T⊢ʰₚₗ" φ => PL.HProof ∅ φ
 
-/-
-The size of a proof is the number of leafs in the proof tree +
-applications of the modus ponens rule.
--/
-def PL.HLProof.size : (Γ T⊢ʰₚₗ φ) → ℕ
-| PL.HProof.mp p1 p2 => 1 + PL.HLProof.size p1 + PL.HLProof.size p2
-| _ => 1
 
 /-
 If we can construct a proof than a proof exists.
@@ -155,40 +107,66 @@ theorem PL.h_prov_implies_self (φ : PL) : Γ ⊢ʰₚₗ φ →ₒ φ := by
   have H5 : Γ T⊢ʰₚₗ (φ →ₒ φ) := PL.HProof.mp H4 H3
   exact H5
 
+/-! # Proof Sizes -/
 
-theorem PL.neg_hprov (φ : PL) : (Γ ⊬ʰₚₗ φ) -> (Γ ⊢ʰₚₗ ¬ₒφ) := by
+/--
+The size of a proof is the number of leafs in the proof tree +
+applications of the modus ponens rule.
+-/
+def PL.HProof.size : (Γ T⊢ʰₚₗ φ) → ℕ
+| PL.HProof.mp p1 p2 => 1 + PL.HProof.size p1 + PL.HProof.size p2
+| _ => 1
+
+/--
+A proof never has a size of 0
+-/
+theorem PL.HProof.size_nonzero : PL.HProof.size P ≠ 0 := by
+  cases P
+  repeat {simp [PL.HProof.size]}
+
+/-! # Deduction theorem -/
+
+/--
+In the proof system, if φ holds under Γ, then φ →ₒ ψ holds under Γ.
+-/
+lemma PL.h_if_intro: (Γ ⊢ʰₚₗ φ) -> (Γ ⊢ʰₚₗ ψ →ₒ φ) := by
   intro H
-  apply @PL.hprov.mp Γ φ
-  sorry
+  have H1 : Γ T⊢ʰₚₗ φ := PL.hproof_of_hprov H
+  have H2 : Γ T⊢ʰₚₗ (φ →ₒ (ψ →ₒ φ)) := PL.HProof.ax1
+  have H3 : Γ T⊢ʰₚₗ (ψ →ₒ φ) := PL.HProof.mp H1 H2
+  exact PL.hprov_of_hproof H3
 
+/--
+Version of `PL.h_if_intro` that takes a proof instead of provability.
+-/
+def PL.hp_if_intro: (Γ T⊢ʰₚₗ φ) -> (Γ ⊢ʰₚₗ ψ →ₒ φ) :=
+  PL.h_if_intro ∘ PL.hprov_of_hproof
 
-
-/-
+/--
 The Deduction Theorem for Hilbert style proof systems.
 -/
-theorem PL.deduction : ((φ ::ₘ Γ) ⊢ʰₚₗ ψ) ↔ (Γ ⊢ʰₚₗ φ →ₒ ψ) := by
-  apply Iff.intro
-  . case mp =>
-    intro H
-    apply PL.hprov.mp (Γ ⊢ʰₚₗ ψ)
-    induction H
-    . case assumption A H1 =>
-      sorry
-    . case ax1 =>
-      sorry
-    . case ax2 =>
-      sorry
-    . case ax3 =>
-      sorry
-    . case mp A B H1 H2 =>
-      sorry
-    --
-    -- have H2 := PL.h_prov.assumption H1
-  . case mpr =>
-    intro H
-    intro H
-    sorry
+theorem PL.deduction_thorem : ((φ ::ₘ Γ) ⊢ʰₚₗ ψ) → (Γ ⊢ʰₚₗ φ →ₒ ψ) := by
+  intro H
+  have H : (φ ::ₘ Γ) T⊢ʰₚₗ ψ := PL.hproof_of_hprov H
+  induction H
+  . case assumption A H2 =>
+    simp only [Multiset.mem_cons] at H2
+    cases H2
+    . case inl H3 =>
+      rw [<-H3]
+      exact h_prov_implies_self A
+    . case inr H3 := PL.hp_if_intro (PL.HProof.assumption H3)
+  . case ax1 A B := PL.hp_if_intro PL.HProof.ax1
+  . case ax2 A B C := PL.hp_if_intro PL.HProof.ax2
+  . case ax3 A B := PL.hp_if_intro PL.HProof.ax3
+  . case mp A B C D IH1 IH2 =>
+    have IH3 := hproof_of_hprov (IH1 (hprov_of_hproof C))
+    have IH4 := hproof_of_hprov (IH2 (hprov_of_hproof D))
+    apply hprov_of_hproof
+    exact PL.HProof.mp IH3 (PL.HProof.mp IH4 (@PL.HProof.ax2 Γ φ A B))
 
+theorem PL.not_hprov : (Γ ⊬ʰₚₗφ) -> (Γ ⊢ʰₚₗ ¬ₒφ) := by
+  sorry
 
 /-
 Hilbert style proof system is sound with respect to the truth functional semantics
@@ -217,4 +195,4 @@ theorem PL.sound (φ : PL) : (⊢ʰₚₗ φ) → (⊨ₚₗ φ) := by
 
 
 theorem PL.complete (φ : PL) : (⊨ₚₗ φ) → (⊢ʰₚₗ φ) := by
-  contrapose
+  sorry
