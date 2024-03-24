@@ -2,36 +2,33 @@
 import Mathlib.Data.Multiset.Basic
 
 /--
-A language has a proof system if provided with an inductive infrence rule
-construction function.
+This is the type of Proofs in a language L of statement φ from Γ, IE
+The type of proofs of the form `Γ ⊢[L] φ`.
+Proofs are inductively constructed from
+a multiset of formulas context(set of assumptions) and a formula.
 -/
-class ProofSystem (L : Type) where
-  Proof : Multiset L -> L -> Type
+def Proof (L : Type u) : Type (u + 1) := Multiset L -> L -> Type u
+notation Γ "T⊢[" L "]" φ => Proof L Γ φ
 
 /--
-If L has a proof system in which we can construct proofs,
-then we can define the notion of provability as the existence of a proof.
+Provability is an inductively defined proposition
+that takes a ProofSystem and reaturns a provability relation.
 -/
-inductive Prov [inst : ProofSystem L] : Multiset L -> L -> Prop where
-| intro {φ : L} : Nonempty (inst.Proof Γ φ) -> Prov Γ φ
+inductive Prov (P : Proof L) : Multiset L -> L -> Prop :=
+| intro {φ : L} {Γ : Multiset L} : Nonempty (P Γ φ) -> Prov P Γ φ
 
-theorem proof_exists [inst : ProofSystem L] :
-(inst.Proof Γ φ) → ∃(_ : inst.Proof Γ φ), True := by
-  intro h
-  exact ⟨h, trivial⟩
-
-theorem prov_of_proof [inst : ProofSystem L] :
-(inst.Proof Γ φ) -> (Prov Γ φ) := by
+theorem prov_of_proof {P : Proof L} :
+(P Γ φ) -> (Prov P Γ φ) := by
   intro H
   exact Prov.intro ⟨H⟩
 
 /-
-If we have that φ is provable from Γ, then the type of
+If we have that φ is provable from Γ in a system P, then the type of
 proofs of φ from Γ is `Nonempty`. This allows us to
 use the axiom of choice to extract an arbitrary proof of a
 fact merely from us knowing that it is provable.
 -/
-theorem PL.HProof.nonempty [inst : ProofSystem L]: (Prov Γ φ) -> Nonempty (inst.Proof Γ φ) := by
+theorem prov_imp_proof_nonempty : (Prov P Γ φ) -> Nonempty (P Γ φ) := by
   intro H1
   cases H1
   assumption
@@ -39,10 +36,16 @@ theorem PL.HProof.nonempty [inst : ProofSystem L]: (Prov Γ φ) -> Nonempty (ins
 /-
 Use classical.choice to create a proof from a proof of provability.
 -/
-noncomputable def proof_of_prov [inst : ProofSystem L]: (Prov Γ φ) -> (inst.Proof Γ φ) := by
+noncomputable def proof_of_prov : (Prov P Γ φ) -> (P Γ φ) := by
   intro H
-  exact Classical.choice (PL.HProof.nonempty H)
+  exact Classical.choice (prov_imp_proof_nonempty H)
 
-instance [inst : ProofSystem L] : Coe (inst.Proof Γ φ) (Prov Γ φ) := ⟨prov_of_proof⟩
 
-noncomputable instance [inst : ProofSystem L] : Coe (Prov Γ φ) (inst.Proof Γ φ) := ⟨proof_of_prov⟩
+instance : Coe (P Γ φ) (Prov P Γ φ) := ⟨prov_of_proof⟩
+
+noncomputable instance : Coe (Prov P Γ φ) (P Γ φ) := ⟨proof_of_prov⟩
+
+theorem proof_exists {P : Proof L} :
+(P Γ φ) → ∃(_ : P Γ φ), True := by
+  intro h
+  exact ⟨h, trivial⟩
