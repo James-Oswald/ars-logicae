@@ -212,3 +212,4 @@ theorem l254 : (∃v, ∀ψ ∈ Γ, v ⊨ₚₗ ψ) -> PL.consistent Γ := by
 theorem PL.complete (φ : PL) : (⊨ₚₗ φ) → (⊢ʰₚₗ φ) := by
   contrapose
   intro H
+  sorry
