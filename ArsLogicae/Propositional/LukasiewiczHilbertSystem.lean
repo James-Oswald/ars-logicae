@@ -166,12 +166,6 @@ theorem PL.deduction_theorem : ((φ ::ₘ Γ) ⊢ʰₚₗ ψ) → (Γ ⊢ʰₚ�
     exact PL.HProof.mp IH3 (PL.HProof.mp IH4 (@PL.HProof.ax2 Γ φ A B))
 
 
-theorem PL.hprov_lem : (Γ ⊢ʰₚₗ φ ∨ₒ ¬ₒφ) := by
-  sorry
-
-theorem PL.not_hprov : (Γ ⊬ʰₚₗφ) -> (Γ ⊢ʰₚₗ ¬ₒφ) := by
-  sorry
-
 /-
 Hilbert style proof system is sound with respect to the truth functional semantics
 of propositional logic.
@@ -196,7 +190,25 @@ theorem PL.sound (φ : PL) : (⊢ʰₚₗ φ) → (⊨ₚₗ φ) := by
     simp [PL.sat_implies] at IH;
     tauto
 
+theorem PL.hprov_or_symm : (Γ ⊢ʰₚₗ φ ∨ₒ ψ) -> (Γ ⊢ʰₚₗ ψ ∨ₒ φ) := by
+  have H := @PL.h_prov_implies_self Γ φ
+  sorry
 
+theorem PL.hprov_lem : (Γ ⊢ʰₚₗ φ ∨ₒ ¬ₒφ) := by
+  have H := @PL.h_prov_implies_self Γ φ
+  rw [PL.implies] at H
+  apply PL.hprov_or_symm
+  exact H
+
+theorem PL.not_hprov : (Γ ⊬ʰₚₗφ) -> (Γ ⊢ʰₚₗ ¬ₒφ) := by
+  sorry
+
+def PL.consistent (Γ : Multiset PL) := Γ ⊬ʰₚₗ ⊥ₒ
+def PL.inconsistent (Γ : Multiset PL) := Γ ⊢ʰₚₗ ⊥ₒ
+
+theorem l254 : (∃v, ∀ψ ∈ Γ, v ⊨ₚₗ ψ) -> PL.consistent Γ := by
+  sorry
 
 theorem PL.complete (φ : PL) : (⊨ₚₗ φ) → (⊢ʰₚₗ φ) := by
-  sorry
+  contrapose
+  intro H
