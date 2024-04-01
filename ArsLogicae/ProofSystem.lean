@@ -1,13 +1,23 @@
 
 import Mathlib.Data.Multiset.Basic
 
+
+inductive ProofSystem {L : Type} where
+| HilbertStyle : (L -> Type) -> ProofSystem
+| NaturalDeductionStyle : (Multiset L -> L -> Type) -> ProofSystem
+| SequentStyle : (Multiset L -> Multiset L -> Type) -> ProofSystem
+
 /--
-This is the type of Proofs in a language L of statement φ from Γ, IE
-The type of proofs of the form `Γ ⊢[L] φ`.
-Proofs are inductively constructed from
-a multiset of formulas context(set of assumptions) and a formula.
+Proof systems typically fall into one of a few catagories.
 -/
-def Proof (L : Type u) : Type (u + 1) := Multiset L -> L -> Type u
+class ProofClass (L : Type) (S : @ProofSystem L) : Type
+
+
+def Provablity [inst : ProofClass L S] : Prop := by
+  cases S
+
+
+
 notation Γ "T⊢[" L "]" φ => Proof L Γ φ
 
 /--

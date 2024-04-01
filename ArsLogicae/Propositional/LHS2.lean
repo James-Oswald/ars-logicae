@@ -8,37 +8,61 @@ import ArsLogicae.Propositional.Language
 import ArsLogicae.Propositional.Semantics
 import ArsLogicae.ProofSystem
 
-inductive LHSProof (Γ : Multiset PL) : PL -> Type
-/-- If φ is in Γ, then φ is provable from Γ. --/
-| assumption {φ : PL} : φ ∈ Γ -> LHSProof Γ φ
-/-- If φ takes the form of any axiom 1, it is provable from Γ --/
-| ax1 {φ ψ : PL} : LHSProof Γ (φ →ₒ (ψ →ₒ φ))
-| ax2 {φ ψ χ : PL} : LHSProof Γ ((φ →ₒ (ψ →ₒ χ)) →ₒ ((φ →ₒ ψ) →ₒ (φ →ₒ χ)))
-| ax3 {φ ψ : PL} : LHSProof Γ ((¬ₒφ →ₒ ¬ₒψ) →ₒ (ψ →ₒ φ))
 /--
-If φ is provable from Γ and φ →ₒ ψ is provable from Γ,
-then ψ is provable from Γ
+Prototypically in hilbert systems, proofs have NO context
+A proof of a statement φ is inducitvely defined to either
+require that the φ is an axiom or can be derived from the
+axioms via a chain of MP applicaions.
 -/
-| mp {φ ψ : PL} : LHSProof Γ φ -> LHSProof Γ (φ →ₒ ψ) -> LHSProof Γ ψ
+inductive LHSProof : PL -> Type
+/-- If φ takes the form of any axiom, then this is a proof of φ --/
+| ax1 {φ ψ : PL} : LHSProof (φ →ₒ (ψ →ₒ φ))
+| ax2 {φ ψ χ : PL} : LHSProof ((φ →ₒ (ψ →ₒ χ)) →ₒ ((φ →ₒ ψ) →ₒ (φ →ₒ χ)))
+| ax3 {φ ψ : PL} : LHSProof ((¬ₒφ →ₒ ¬ₒψ) →ₒ (ψ →ₒ φ))
+/--
+If we have a proof of φ and a proof of φ →ₒ ψ, this is a proof of ψ
+-/
+| mp {φ ψ : PL} : LHSProof φ -> LHSProof (φ →ₒ ψ) -> LHSProof ψ
 
-notation:43 Γ "T⊢ʰₚₗ" φ => LHSProof Γ φ
-notation:43 "T⊢ʰₚₗ" φ => LHSProof ∅ φ
 
-notation:43 Γ "⊢ʰₚₗ" φ => Prov LHSProof Γ φ
-notation:43 Γ "⊬ʰₚₗ" φ => ¬Prov LHSProof Γ φ
-notation:43 "⊢ʰₚₗ" φ => Prov LHSProof ∅ φ
-notation:43 "⊬ʰₚₗ" φ => ¬Prov LHSProof ∅ φ
+instance : ProofSystem PL LHSProof := by constructor; rfl
+
+
+
+
+
+def LHSProv (φ : PL) : Prop := Nonempty (LHSProof φ)
+
+notation:43 "T⊢ʰₚₗ" φ => LHSProof φ
+notation:43 "⊬ʰₚₗ" φ => ¬LHSProof φ
+
+/--
+The concequence relation is defined in terms of provability
+-/
+inductive LHSConsequence (Γ : Multiset PL) : PL -> Prop
+/-- If φ is in Γ, then φ is provable from Γ. --/
+| assumption {φ : PL} : φ ∈ Γ -> LHSConsequence Γ φ
+/--
+If we have a proof of a state
+--/
+| tautology {φ : PL} : LHSProof φ -> LHSConsequence Γ φ
+
+
+notation:43 Γ "⊢ʰₚₗ" φ => LHSConsequence Γ φ
+notation:43 Γ "⊬ʰₚₗ" φ => ¬LHSConsequence Γ φ
+
+lemma ex: T⊢ʰₚₗ φ
 
 
 theorem h_prov_implies_self (φ : PL) : Γ ⊢ʰₚₗ φ →ₒ φ := by
   have ψ : PL := Inhabited.default
-  have H1 : Γ T⊢ʰₚₗ (φ →ₒ ((ψ →ₒ φ) →ₒ φ)) := LHSProof.ax1
-  have H2 : Γ T⊢ʰₚₗ (φ →ₒ ((ψ →ₒ φ) →ₒ φ)) →ₒ ((φ →ₒ (ψ →ₒ φ)) →ₒ (φ →ₒ φ)) :=
+  have H1 : T⊢ʰₚₗ (φ →ₒ ((ψ →ₒ φ) →ₒ φ)) := LHSProof.ax1
+  have H2 : T⊢ʰₚₗ (φ →ₒ ((ψ →ₒ φ) →ₒ φ)) →ₒ ((φ →ₒ (ψ →ₒ φ)) →ₒ (φ →ₒ φ)) :=
     LHSProof.ax2
-  have H3 : Γ T⊢ʰₚₗ ((φ →ₒ (ψ →ₒ φ)) →ₒ (φ →ₒ φ)) :=
+  have H3 : T⊢ʰₚₗ ((φ →ₒ (ψ →ₒ φ)) →ₒ (φ →ₒ φ)) :=
     LHSProof.mp H1 H2
-  have H4 : Γ T⊢ʰₚₗ (φ →ₒ (ψ →ₒ φ)) := LHSProof.ax1
-  have H5 : Γ T⊢ʰₚₗ (φ →ₒ φ) := LHSProof.mp H4 H3
+  have H4 : T⊢ʰₚₗ (φ →ₒ (ψ →ₒ φ)) := LHSProof.ax1
+  have H5 : T⊢ʰₚₗ (φ →ₒ φ) := LHSProof.mp H4 H3
   exact ↑H5
 
 
