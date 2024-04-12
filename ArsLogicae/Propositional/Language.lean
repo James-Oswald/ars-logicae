@@ -4,6 +4,13 @@ This file contains a standard definition of the language of propositional
 logic, as well as some basic notations.
 -/
 
+/-
+TODO
+Look into declare_syntax_cat
+
+https://lean-lang.org/lean4/doc/metaprogramming-arith.html
+-/
+
 /--
 An atom is some finite string of characters.
 -/

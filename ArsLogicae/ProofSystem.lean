@@ -1,21 +1,24 @@
 
 import Mathlib.Data.Multiset.Basic
 
-
-inductive ProofSystem {L : Type} where
-| HilbertStyle : (L -> Type) -> ProofSystem
-| NaturalDeductionStyle : (Multiset L -> L -> Type) -> ProofSystem
-| SequentStyle : (Multiset L -> Multiset L -> Type) -> ProofSystem
-
-/--
-Proof systems typically fall into one of a few catagories.
+/-
+The typeclass of hilbert proof systems.
 -/
-class ProofClass (L : Type) (S : @ProofSystem L) : Type
+class HilbertProofSystem {L : Type} (S : L -> Type)
+class NDProofSystem {L : Type} (S : Multiset L -> L -> Type)
+class SequentProofSystem {L : Type} (S : Multiset L -> Multiset L -> Type)
+
+notation "⊢[" S "]" φ => S φ
+notation Γ "⊢[" S "]" φ => S Γ φ
 
 
-def Provablity [inst : ProofClass L S] : Prop := by
-  cases S
 
+def HilbertProvablity [@HilbertProofSystem L S] (φ : L) : Prop :=
+  Nonempty (S φ)
+def NaturalDeductionProvablity [@NDProofSystem L S] (Γ : Multiset L) (φ : L) : Prop :=
+  Nonempty (S Γ φ)
+def SequentProvablity [@SequentProofSystem L S] (Γ1 Γ2 : Multiset L) : Prop :=
+  Nonempty (S Γ1 Γ2)
 
 
 notation Γ "T⊢[" L "]" φ => Proof L Γ φ
