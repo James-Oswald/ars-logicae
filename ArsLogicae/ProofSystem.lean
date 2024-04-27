@@ -2,26 +2,39 @@
 import Mathlib.Data.Multiset.Basic
 
 /-
-The typeclass of hilbert proof systems.
+The typeclasses of the three most common proof systems
 -/
-class HilbertProofSystem {L : Type} (S : L -> Type)
-class NDProofSystem {L : Type} (S : Multiset L -> L -> Type)
-class SequentProofSystem {L : Type} (S : Multiset L -> Multiset L -> Type)
+class HilbertProofSystem {L : Type} (S : L -> Type) : Prop
+class NDProofSystem {L : Type} (S : Multiset L -> L -> Type) : Prop
+class SequentProofSystem {L : Type} (S : Multiset L -> Multiset L -> Type) : Prop
 
-notation "⊢[" S "]" φ => S φ
-notation Γ "⊢[" S "]" φ => S Γ φ
+--Proof System Casting
+instance [NDProofSystem S] : HilbertProofSystem (S ∅) := ⟨⟩
+instance [SequentProofSystem S]: NDProofSystem (λ H L => S H {L}) := ⟨⟩
+instance [HilbertProofSystem (S ∅)]: NDProofSystem S := ⟨⟩
+instance {S : Multiset L -> Multiset L -> Type} [NDProofSystem (λ H L => S H {L})] :
+  SequentProofSystem S := ⟨⟩
 
+theorem Hilbert_iff_ND : HilbertProofSystem (S ∅) ↔ NDProofSystem S :=
+  Iff.intro (λ _ => NDProofSystem.mk) (λ _ => HilbertProofSystem.mk)
 
+theorem Hilbert_iff_ND' : HilbertProofSystem S ↔ NDProofSystem (λ _ => S) :=
+  Iff.intro (λ _ => NDProofSystem.mk) (λ _ => HilbertProofSystem.mk)
 
-def HilbertProvablity [@HilbertProofSystem L S] (φ : L) : Prop :=
-  Nonempty (S φ)
-def NaturalDeductionProvablity [@NDProofSystem L S] (Γ : Multiset L) (φ : L) : Prop :=
-  Nonempty (S Γ φ)
+theorem ND_iff_Sequent {S : Multiset L -> Multiset L -> Type} :
+NDProofSystem (λ H L => S H {L}) ↔ SequentProofSystem S :=
+  Iff.intro (λ _ => SequentProofSystem.mk) (λ _ => NDProofSystem.mk)
+
 def SequentProvablity [@SequentProofSystem L S] (Γ1 Γ2 : Multiset L) : Prop :=
   Nonempty (S Γ1 Γ2)
+def NaturalDeductionProvablity [@NDProofSystem L S] (Γ : Multiset L) (φ : L) : Prop :=
+  Nonempty (S Γ φ)
+def HilbertProvablity [@HilbertProofSystem L S] (φ : L) : Prop :=
+  Nonempty (S φ)
 
-
-notation Γ "T⊢[" L "]" φ => Proof L Γ φ
+theorem HProv_iff_NDProv [HilbertProofSystem S]:
+HilbertProvablity φ ↔ NaturalDeductionProvablity ∅ φ :=
+  Iff.intro (λ h => ⟨h⟩) (λ h => ⟨h⟩)
 
 /--
 Provability is an inductively defined proposition

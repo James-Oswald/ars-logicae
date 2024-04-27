@@ -29,6 +29,9 @@ then ψ is provable from Γ
 -/
 | mp {φ ψ : PL} : PL.HProof Γ φ -> PL.HProof Γ (φ →ₒ ψ) -> PL.HProof Γ ψ
 
+#check PL.HProof
+
+
 notation:43 Γ "T⊢ʰₚₗ" φ => PL.HProof Γ φ
 notation:43 "T⊢ʰₚₗ" φ => PL.HProof ∅ φ
 
