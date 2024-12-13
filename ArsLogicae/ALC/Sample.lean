@@ -44,6 +44,28 @@ def ExIndivduals (i : Indivdual) : String :=
     | "Climb" => "Climb"
     | _ => "Unknown"
 
+
+theorem finset_inter_sub [DecidableEq α] [Inter (Finset α)] (A B C : Finset α) :
+A ⊆ C -> B ⊆ C -> A ∩ B ⊆ C := by
+  intros H1 H2
+  simp [Subset] at *
+  intros x Hx
+  sorry
+
+
+/--
+∀composerOf.Symphony
+
+{x | forall songs, if x composerOf song then song is a symphony}
+The set of all composers of exclusively symphonies.
+
+∃composerOf.Symphony
+{x | exists a song such that x is the composer of that song and the song is a symphony}
+The set of all composers of at least one symphony.
+
+
+-/
+
 def ExInterp : Interp := {
   D := ExDomain,
   II := ExIndivduals,
@@ -85,6 +107,7 @@ def ExInterp : Interp := {
     . decide
     . simp [IC]
     . simp [IC]
+
       sorry
       --apply Finset.inter_subset
     . simp [IC]
